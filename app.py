@@ -24,25 +24,44 @@ st.markdown("Assess the renewable energy potential (wind and solar) for any loca
 # Sidebar for user controls
 st.sidebar.header("Location Controls")
 
+# Initialize coordinate session state
+if 'lat_input' not in st.session_state:
+    st.session_state['lat_input'] = 40.7128
+if 'lon_input' not in st.session_state:
+    st.session_state['lon_input'] = -74.0060
+if 'map_click_lat' not in st.session_state:
+    st.session_state['map_click_lat'] = None
+if 'map_click_lon' not in st.session_state:
+    st.session_state['map_click_lon'] = None
+
+# Check if we need to update from a previous map click
+if st.session_state['map_click_lat'] is not None:
+    st.session_state['lat_input'] = st.session_state['map_click_lat']
+    st.session_state['lon_input'] = st.session_state['map_click_lon']
+    st.session_state['map_click_lat'] = None
+    st.session_state['map_click_lon'] = None
+
 # Input widgets for coordinates
 latitude = st.sidebar.number_input(
     "Latitude",
     min_value=-90.0,
     max_value=90.0,
-    value=40.7128,
+    value=float(st.session_state['lat_input']),
     step=0.0001,
     format="%.4f",
-    help="Enter latitude between -90 and 90"
+    help="Enter latitude between -90 and 90",
+    key="lat_input"
 )
 
 longitude = st.sidebar.number_input(
     "Longitude",
     min_value=-180.0,
     max_value=180.0,
-    value=-74.0060,
+    value=float(st.session_state['lon_input']),
     step=0.0001,
     format="%.4f",
-    help="Enter longitude between -180 and 180"
+    help="Enter longitude between -180 and 180",
+    key="lon_input"
 )
 
 # Year selection for data retrieval
@@ -91,8 +110,17 @@ def create_map(lat, lon):
 
 # Display the map
 st.subheader("📍 Selected Location")
-map_obj = create_map(latitude, longitude)
-st_folium(map_obj, width=1200, height=400)
+map_obj = create_map(st.session_state['lat_input'], st.session_state['lon_input'])
+map_state = st_folium(map_obj, width=1200, height=400)
+
+# If user clicked on the map, store coordinates and trigger rerun
+if map_state and map_state.get("last_clicked"):
+    clicked_lat = map_state["last_clicked"]["lat"]
+    clicked_lon = map_state["last_clicked"]["lng"]
+    # Store in temporary keys to update before widgets on next run
+    st.session_state['map_click_lat'] = float(clicked_lat)
+    st.session_state['map_click_lon'] = float(clicked_lon)
+    st.rerun()
 
 
 # Phase III: Data Retrieval Function
